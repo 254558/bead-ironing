@@ -382,13 +382,10 @@ body {
   z-index: 8;
   display: none;
   overflow: hidden;
-  /* 深色墙底 + 点阵，营造「墙」的质感 */
-  background:
-    radial-gradient(circle, #252540 1.5px, transparent 1.5px),
-    linear-gradient(180deg, rgba(13, 13, 26, 0.88), rgba(13, 13, 26, 0.96));
-  background-size:
-    36px 36px,
-    100% 100%;
+  /* 深色墙底（不透明，避免透出底层 2D/3D 画面）+ 点阵，营造「墙」的质感 */
+  background-color: #0d0d1a;
+  background-image: radial-gradient(circle, #252540 1.5px, transparent 1.5px);
+  background-size: 36px 36px;
 }
 
 .board-panel.show {
