@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useTemplateRef } from 'vue'
 import { importImage } from '../composables/useImageImport'
-import { clearAll, hasBeads, hasMelt, store, switchMode } from '../stores/game'
+import { clearAll, hasBeads, hasMelt, saveBoard, setBoardPanel, store, switchMode } from '../stores/game'
 
 const fileInput = useTemplateRef<HTMLInputElement>('fileInput')
 
@@ -40,6 +40,12 @@ function onFileChange(e: Event) {
     </button>
     <button class="mode-btn btn-import" @click="fileInput?.click()">
       导<br>入<br>图<br>片
+    </button>
+    <button class="mode-btn btn-save" :disabled="!hasBeads" @click="saveBoard()">
+      保<br>存
+    </button>
+    <button class="mode-btn btn-panel" @click="setBoardPanel(true)">
+      面<br>板
     </button>
     <button class="mode-btn btn-clear" @click="clearAll()">
       清<br>空

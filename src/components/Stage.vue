@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, useTemplateRef } from 'vue'
 import { setupGrid, showStatus, store } from '../stores/game'
+import BoardPanel from './BoardPanel.vue'
 import CRTOverlay from './CRTOverlay.vue'
 import IronProgress from './IronProgress.vue'
 import PixelCanvas from './PixelCanvas.vue'
@@ -37,6 +38,7 @@ onUnmounted(() => window.removeEventListener('resize', onWindowResize))
   <div ref="root" class="canvas-wrap">
     <PixelCanvas />
     <View3D />
+    <BoardPanel />
     <CRTOverlay />
     <StatusBar />
     <IronProgress />

@@ -1,6 +1,29 @@
 import { computed, reactive } from 'vue'
-import type { Cell, IronProgress, Mode, MouseState } from '../types'
+import type { Cell, IronProgress, Mode, MouseState, SavedBoard } from '../types'
 import { CELL, COLORS, DISPLAY_CELL } from '../utils/color'
+import { renderThumb } from '../utils/thumbnail'
+
+const STORAGE_KEY = 'bead-iron.savedBoards'
+
+/** 从 localStorage 读取已保存的作品（容错：损坏/不可用时返回空列表） */
+function loadSavedBoards(): SavedBoard[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return []
+    const list = JSON.parse(raw)
+    return Array.isArray(list) ? (list as SavedBoard[]) : []
+  } catch {
+    return []
+  }
+}
+
+function persistBoards() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(store.savedBoards))
+  } catch {
+    /* 存储超限等场景静默失败 */
+  }
+}
 
 function createGrid(cols: number, rows: number): Cell[][] {
   return Array.from({ length: rows }, () =>
@@ -26,6 +49,10 @@ export const store = reactive({
   } as IronProgress,
   /** 窗口 resize 后 +1，通知画布/3D 重新适配 */
   resizeTick: 0,
+  /** 已保存到作品面板的成品（localStorage 持久化） */
+  savedBoards: loadSavedBoards(),
+  /** 作品面板显示开关（仿 three-container 的 .show 切换） */
+  showBoardPanel: false,
 })
 
 /** 存在任意珠子（熨烫按钮可用） */
@@ -121,4 +148,52 @@ export function selectColor(hex: string) {
 
 export function toggleEraser() {
   store.isEraser = !store.isEraser
+}
+
+/* ---------- 作品面板（localStorage 持久化） ---------- */
+
+/** 把当前画布保存为一件作品（含缩略图），并打开面板即时反馈 */
+export function saveBoard() {
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const name = `作品 ${store.savedBoards.length + 1}`
+  const grid = store.grid.map((row) => row.map((cell) => ({ ...cell })))
+  // 离屏 canvas 生成缩略图 PNG
+  const canvas = document.createElement('canvas')
+  canvas.width = store.cols * 2
+  canvas.height = store.rows * 2
+  const ctx = canvas.getContext('2d')
+  if (ctx) renderThumb(ctx, grid, store.cols, store.rows, 2)
+  store.savedBoards.push({
+    id,
+    name,
+    cols: store.cols,
+    rows: store.rows,
+    grid,
+    thumb: canvas.toDataURL('image/png'),
+    savedAt: Date.now(),
+  })
+  persistBoards()
+  store.showBoardPanel = true
+  showStatus(`已保存「${name}」到作品面板`)
+}
+
+/** 把面板中的一件作品整表载入画布（保留熔融度，不走 switchMode） */
+export function loadBoard(id: string) {
+  const board = store.savedBoards.find((b) => b.id === id)
+  if (!board) return
+  store.cols = board.cols
+  store.rows = board.rows
+  store.grid = board.grid.map((row) => row.map((cell) => ({ ...cell })))
+  store.mode = 'design' // 直接赋值：避免 switchMode 清零 melt
+  store.showBoardPanel = false
+  showStatus(`已载入「${board.name}」`)
+}
+
+export function deleteBoard(id: string) {
+  store.savedBoards = store.savedBoards.filter((b) => b.id !== id)
+  persistBoards()
+}
+
+export function setBoardPanel(show: boolean) {
+  store.showBoardPanel = show
 }
