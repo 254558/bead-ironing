@@ -1,0 +1,358 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  background: #1a1c2c;
+  color: #f4f4f4;
+  font-family: 'Press Start 2P', monospace;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#app {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.app {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ---------- 侧栏 ---------- */
+.sidebar {
+  width: 70px;
+  background: #29366f;
+  border-right: 3px solid #1a1c2c;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 3px
+  );
+}
+
+.sidebar-tools {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-bottom: 2px solid #1a1c2c;
+}
+
+.mode-btn {
+  padding: 6px 4px;
+  border: 3px solid;
+  border-color: #566c86 #1a1c2c #1a1c2c #566c86;
+  background: #333c57;
+  color: #f4f4f4;
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.mode-btn:hover:not(:disabled) {
+  background: #3b5dc9;
+}
+
+.mode-btn.active {
+  background: #41a6f6;
+  border-color: #1a1c2c #73eff7 #73eff7 #1a1c2c;
+  color: #1a1c2c;
+}
+
+.mode-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn-import {
+  background: #38b764;
+  border-color: #a7f070 #1a1c2c #1a1c2c #a7f070;
+}
+
+.btn-import:hover {
+  background: #a7f070;
+}
+
+.btn-clear {
+  background: #b13e53;
+  border-color: #ef7d57 #1a1c2c #1a1c2c #ef7d57;
+}
+
+.btn-clear:hover {
+  background: #ef7d57;
+}
+
+.file-input {
+  display: none;
+}
+
+/* ---------- 调色板 ---------- */
+.palette-bar {
+  padding: 6px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  align-content: flex-start;
+  overflow-y: auto;
+}
+
+.palette-bar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.palette-bar::-webkit-scrollbar-track {
+  background: #1a1c2c;
+}
+
+.palette-bar::-webkit-scrollbar-thumb {
+  background: #566c86;
+  border: 1px solid #1a1c2c;
+}
+
+.color-swatch {
+  width: 100%;
+  height: 18px;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: #94b0c2 #1a1c2c #1a1c2c #94b0c2;
+  flex-shrink: 0;
+  transition: transform 0.1s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.color-swatch.selected {
+  border-color: #ffcd75;
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px #41a6f6, inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+.eraser-btn {
+  width: 100%;
+  height: 18px;
+  background: #333c57;
+  color: #94b0c2;
+  border: 2px solid;
+  border-color: #566c86 #1a1c2c #1a1c2c #566c86;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-family: inherit;
+}
+
+.eraser-btn.selected {
+  border-color: #1a1c2c #ef7d57 #ef7d57 #1a1c2c;
+  color: #ef7d57;
+}
+
+/* ---------- 舞台 ---------- */
+.canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
+  background: #0d0d1a;
+}
+
+.scroll-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  display: flex;
+}
+
+.scroll-wrap::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scroll-wrap::-webkit-scrollbar-track {
+  background: #0d0d1a;
+}
+
+.scroll-wrap::-webkit-scrollbar-thumb {
+  background: #566c86;
+  border: 1px solid #1a1c2c;
+}
+
+.canvas-pixel {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  display: block;
+  background: #0d0d1a;
+  margin: auto;
+  cursor: crosshair;
+}
+
+.canvas-pixel.canvas-hidden {
+  display: none;
+}
+
+.canvas-pixel.iron-cursor {
+  cursor: none;
+}
+
+.three-container {
+  position: absolute;
+  inset: 0;
+  display: none;
+  z-index: 5;
+}
+
+.three-container.show {
+  display: block;
+}
+
+.three-container canvas {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+}
+
+/* ---------- CRT 滤镜 ---------- */
+.crt-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 11;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.15) 2px,
+      rgba(0, 0, 0, 0.15) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 0, 0, 0.03) 0,
+      rgba(255, 0, 0, 0.03) 1px,
+      rgba(0, 255, 0, 0.03) 1px,
+      rgba(0, 255, 0, 0.03) 2px,
+      rgba(0, 0, 255, 0.03) 2px,
+      rgba(0, 0, 255, 0.03) 3px
+    ),
+    radial-gradient(ellipse at 30% 0%, rgba(255, 255, 255, 0.05), transparent 50%),
+    radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.35) 100%);
+  animation: crtFlicker 0.12s infinite;
+}
+
+@keyframes crtFlicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+/* ---------- 状态提示 ---------- */
+.status-bar {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333c57;
+  border: 2px solid;
+  border-color: #566c86 #1a1c2c #1a1c2c #566c86;
+  padding: 6px 14px;
+  font-size: 7px;
+  color: #f4f4f4;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+
+.status-bar.show {
+  opacity: 1;
+}
+
+/* ---------- 熨烫进度 ---------- */
+.iron-progress {
+  display: none;
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  background: #333c57;
+  border: 2px solid;
+  border-color: #566c86 #1a1c2c #1a1c2c #566c86;
+  padding: 8px 10px;
+  z-index: 50;
+}
+
+.iron-progress.show {
+  display: block;
+}
+
+.progress-label {
+  font-size: 7px;
+  text-align: center;
+  margin-bottom: 6px;
+  color: #94b0c2;
+}
+
+.progress-bar {
+  height: 12px;
+  background: #0d0d1a;
+  border: 1px solid;
+  border-color: #1a1c2c #566c86 #566c86 #1a1c2c;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #41a6f6;
+  transition: width 0.1s;
+}
+
+.progress-zone {
+  position: absolute;
+  top: 0;
+  left: 30%;
+  width: 40%;
+  height: 100%;
+  border-left: 1px solid #38b764;
+  border-right: 1px solid #38b764;
+  pointer-events: none;
+}
