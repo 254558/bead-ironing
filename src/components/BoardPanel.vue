@@ -105,8 +105,8 @@ function onWindowMove(e: MouseEvent) {
       scaleStart.img.style.width = `${Math.round(nw)}px`
       scaleStart.img.style.height = `${Math.round(nh)}px`
     }
-    b.x = Math.round(scaleStart.cx - (nw + 14) / 2) // +14 ≈ 磁贴内边距与边框
-    b.y = Math.round(scaleStart.cy - (nh + 14) / 2)
+    b.x = Math.round(scaleStart.cx - (nw + 14) / 2) // +14 = 水平 padding 10 + 边框 4
+    b.y = Math.round(scaleStart.cy - (nh + 12) / 2) // +12 = 垂直 padding 8 + 边框 4
     dragMoved = true
   }
 }

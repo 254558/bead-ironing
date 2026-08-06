@@ -470,8 +470,7 @@ body {
 .magnet-thumb {
   display: block;
   /* 保持低分辨率 + 最近邻放大，呈现与主画布一致的像素风 */
-  max-width: 180px;
-  max-height: 140px;
+  /* 不加 max-width/max-height：缩放时按 b.scale 等比设置，钳制会压扁图案 */
   background: transparent;
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
