@@ -3,7 +3,7 @@ import { shade } from './color'
 
 /**
  * 把拼豆网格绘制成小缩略图（每格 1px，按 scale 放大），供保存作品时生成 PNG。
- * 不依赖 game store，避免循环导入；只画底板与珠子纯色，不画网格线/光标。
+ * 不依赖 game store，避免循环导入；只画珠子本身，背景透明（不含底板方框）。
  */
 export function renderThumb(
   ctx: CanvasRenderingContext2D,
@@ -13,8 +13,7 @@ export function renderThumb(
   scale = 2,
 ) {
   ctx.imageSmoothingEnabled = false
-  ctx.fillStyle = '#0d0d1a' // 底板色
-  ctx.fillRect(0, 0, cols * scale, rows * scale)
+  // 背景保持透明（canvas 默认），只画珠子
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const cell = grid[r][c]

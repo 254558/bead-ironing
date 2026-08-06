@@ -5,6 +5,16 @@ import { renderThumb } from '../utils/thumbnail'
 
 const STORAGE_KEY = 'bead-iron.savedBoards'
 
+/** 重新生成缩略图（当前 renderThumb 规则），用于旧数据迁移为透明背景 */
+function regenerateThumb(cols: number, rows: number, grid: Cell[][]): string {
+  const canvas = document.createElement('canvas')
+  canvas.width = cols * 2
+  canvas.height = rows * 2
+  const ctx = canvas.getContext('2d')
+  if (ctx) renderThumb(ctx, grid, cols, rows, 2)
+  return canvas.toDataURL('image/png')
+}
+
 /** 从 localStorage 读取已保存的作品（容错：损坏/不可用时返回空列表） */
 function loadSavedBoards(): SavedBoard[] {
   try {
@@ -12,9 +22,10 @@ function loadSavedBoards(): SavedBoard[] {
     if (!raw) return []
     const list = JSON.parse(raw)
     if (!Array.isArray(list)) return []
-    // 旧版本数据没有 x/y 位置：按索引错落补默认落点，保证不互相叠压
+    // 统一迁移：重新生成透明背景缩略图（旧版带底板方框）+ 缺失的 x/y 位置补默认落点
     return (list as SavedBoard[]).map((b, i) => ({
       ...b,
+      thumb: regenerateThumb(b.cols, b.rows, b.grid),
       x: typeof b.x === 'number' ? b.x : 20 + (i % 4) * 132,
       y: typeof b.y === 'number' ? b.y : 20 + Math.floor(i / 4) * 122,
     }))
