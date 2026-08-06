@@ -474,8 +474,6 @@ body {
   max-width: 180px;
   max-height: 140px;
   background: transparent;
-  image-rendering: pixelated;
-  image-rendering: -moz-crisp-edges;
   pointer-events: none;
 }
 
