@@ -5,13 +5,11 @@ import { renderThumb } from '../utils/thumbnail'
 
 const STORAGE_KEY = 'bead-iron.savedBoards'
 
-/** 重新生成缩略图（当前 renderThumb 规则），用于旧数据迁移为透明背景 */
-function regenerateThumb(cols: number, rows: number, grid: Cell[][]): string {
+/** 重新生成缩略图（当前 renderThumb 规则），用于旧数据迁移 */
+function regenerateThumb(grid: Cell[][]): string {
   const canvas = document.createElement('canvas')
-  canvas.width = cols * 2
-  canvas.height = rows * 2
   const ctx = canvas.getContext('2d')
-  if (ctx) renderThumb(ctx, grid, cols, rows, 2)
+  if (ctx) renderThumb(ctx, grid)
   return canvas.toDataURL('image/png')
 }
 
@@ -25,7 +23,7 @@ function loadSavedBoards(): SavedBoard[] {
     // 统一迁移：重新生成透明背景缩略图（旧版带底板方框）+ 缺失的 x/y 位置补默认落点
     return (list as SavedBoard[]).map((b, i) => ({
       ...b,
-      thumb: regenerateThumb(b.cols, b.rows, b.grid),
+      thumb: regenerateThumb(b.grid),
       x: typeof b.x === 'number' ? b.x : 20 + (i % 4) * 132,
       y: typeof b.y === 'number' ? b.y : 20 + Math.floor(i / 4) * 122,
     }))
@@ -174,12 +172,10 @@ export function saveBoard() {
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const name = `作品 ${store.savedBoards.length + 1}`
   const grid = store.grid.map((row) => row.map((cell) => ({ ...cell })))
-  // 离屏 canvas 生成缩略图 PNG
+  // 离屏 canvas 生成缩略图 PNG（裁剪到图案边界，透明背景）
   const canvas = document.createElement('canvas')
-  canvas.width = store.cols * 2
-  canvas.height = store.rows * 2
   const ctx = canvas.getContext('2d')
-  if (ctx) renderThumb(ctx, grid, store.cols, store.rows, 2)
+  if (ctx) renderThumb(ctx, grid)
   // 初始落点：按已有数量错落排布（间距大于磁贴尺寸，避免叠压），之后可自由拖拽
   const n = store.savedBoards.length
   store.savedBoards.push({

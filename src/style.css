@@ -473,7 +473,9 @@ body {
 
 .magnet-thumb {
   display: block;
-  width: 96px;
+  /* 不设固定宽：按图案裁剪后的实际尺寸显示 */
+  max-width: 180px;
+  max-height: 140px;
   background: transparent;
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
