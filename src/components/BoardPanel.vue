@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { onUnmounted, ref } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 import { deleteBoard, loadBoard, moveBoard, setBoardPanel, store } from '../stores/game'
 import type { SavedBoard } from '../types'
+
+const panelEl = useTemplateRef<HTMLDivElement>('panelEl')
 
 /** 当前正在拖拽的磁贴 id（用于提升 z-index / 光标态） */
 const dragId = ref<string | null>(null)
@@ -67,6 +69,35 @@ function onDblClick(b: SavedBoard) {
   loadBoard(b.id)
 }
 
+/** 磁贴显示尺寸：保持图案比例，但最长边至少 96px（配合最近邻放大呈现像素风） */
+function applyThumbSize(img: HTMLImageElement) {
+  const nw = img.naturalWidth
+  const nh = img.naturalHeight
+  if (!nw || !nh) return
+  const k = Math.max(1, 96 / Math.max(nw, nh))
+  img.style.width = `${Math.round(nw * k)}px`
+  img.style.height = `${Math.round(nh * k)}px`
+}
+
+function onThumbLoad(e: Event) {
+  applyThumbSize(e.target as HTMLImageElement)
+}
+
+/** 已存在的磁贴（如 HMR 重渲染）不会重发 load 事件，这里统一补一遍尺寸 */
+function sizeAllThumbs() {
+  panelEl.value?.querySelectorAll<HTMLImageElement>('.magnet-thumb').forEach(applyThumbSize)
+}
+
+watch(
+  () => store.savedBoards.length,
+  async () => {
+    await nextTick()
+    sizeAllThumbs()
+  },
+)
+
+onMounted(sizeAllThumbs)
+
 onUnmounted(() => {
   window.removeEventListener('mousemove', onWindowMove)
   window.removeEventListener('mouseup', onWindowUp)
@@ -74,7 +105,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="board-panel" :class="{ show: store.showBoardPanel }">
+  <div ref="panelEl" class="board-panel" :class="{ show: store.showBoardPanel }">
     <header class="board-panel-head">
       <h2 class="board-panel-title">作 品 墙</h2>
       <button class="board-panel-close" @click="setBoardPanel(false)">✕</button>
@@ -93,7 +124,7 @@ onUnmounted(() => {
       @mousedown="onMouseDown($event, b)"
       @dblclick="onDblClick(b)"
     >
-      <img class="magnet-thumb" :src="b.thumb" :alt="b.name">
+      <img class="magnet-thumb" :src="b.thumb" :alt="b.name" @load="onThumbLoad">
       <button
         class="magnet-del"
         title="撕下删除"

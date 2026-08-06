@@ -392,11 +392,6 @@ body {
   display: block;
 }
 
-/* 作品墙是「真实世界」的冰箱贴墙，关掉 CRT 滤镜（扫描线/暗角会让人物发糊） */
-.board-panel.show ~ .crt-overlay {
-  display: none;
-}
-
 .board-panel-head {
   position: absolute;
   top: 14px;
@@ -475,10 +470,12 @@ body {
 
 .magnet-thumb {
   display: block;
-  /* 缩略图已按 1:1 分辨率渲染（≥96px），这里不放大、按原尺寸显示 */
+  /* 保持低分辨率 + 最近邻放大，呈现与主画布一致的像素风 */
   max-width: 180px;
   max-height: 140px;
   background: transparent;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
   pointer-events: none;
 }
 
