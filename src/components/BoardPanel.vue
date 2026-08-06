@@ -1,54 +1,113 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
-import { deleteBoard, loadBoard, moveBoard, setBoardPanel, store } from '../stores/game'
+import { deleteBoard, loadBoard, setBoardPanel, store, updateBoard } from '../stores/game'
 import type { SavedBoard } from '../types'
 
 const panelEl = useTemplateRef<HTMLDivElement>('panelEl')
 
 /** 当前正在拖拽的磁贴 id（用于提升 z-index / 光标态） */
 const dragId = ref<string | null>(null)
+type DragKind = 'move' | 'rot' | 'scale'
+let dragKind: DragKind = 'move'
 let dragStart = { x: 0, y: 0 }
 let dragMoved = false
+/** 旋转：磁贴中心（视口坐标）+ 抓取点相对角度，避免拖动瞬间跳变 */
+let rotCenter = { x: 0, y: 0 }
+let rotGrab = 0
+/** 缩放：起始距离/倍率 + 盒子与图元基础尺寸，缩放时保持视觉中心不动 */
+let scaleStart = { dist: 1, scale: 1, cx: 0, cy: 0, imgW: 1, imgH: 1, img: null as HTMLImageElement | null }
 /** 上一次拖拽结束时间，用于抑制拖拽刚结束后的双击误触 */
 let lastDragEnd = 0
 
-/** 基于 id 生成稳定的轻微旋转角（-4°~4°），让磁贴错落贴墙 */
-function rotFor(id: string) {
-  let sum = 0
-  for (let i = 0; i < id.length; i++) sum += id.charCodeAt(i)
-  return (sum % 9) - 4
-}
-
+/** 磁贴绝对定位 + 旋转（角度来自数据，可自由调整） */
 function magnetStyle(b: SavedBoard) {
   return {
     left: `${b.x}px`,
     top: `${b.y}px`,
-    transform: `rotate(${rotFor(b.id)}deg)`,
+    transform: `rotate(${b.rotation}deg)`,
   }
 }
 
-function onMouseDown(e: MouseEvent, b: SavedBoard) {
-  if (e.button !== 0) return // 仅左键
+function startDrag(kind: DragKind, b: SavedBoard, e: MouseEvent) {
+  dragKind = kind
   dragId.value = b.id
   dragStart = { x: e.clientX, y: e.clientY }
   dragMoved = false
-  // move/up 挂到 window：鼠标移出磁贴也能持续跟踪拖拽
+  // move/up 挂到 window：鼠标移出磁贴也能持续跟踪
   window.addEventListener('mousemove', onWindowMove)
   window.addEventListener('mouseup', onWindowUp)
+}
+
+/** 拖拽磁贴本体 = 移动位置 */
+function onMouseDown(e: MouseEvent, b: SavedBoard) {
+  if (e.button !== 0) return // 仅左键
+  startDrag('move', b, e)
+}
+
+/** 拖拽 ↻ 操作柄 = 旋转（角度跟随指针绕磁贴中心） */
+function onRotDown(e: MouseEvent, b: SavedBoard) {
+  if (e.button !== 0) return
+  const magnet = (e.currentTarget as HTMLElement).closest<HTMLElement>('.fridge-magnet')
+  if (!magnet) return
+  const rect = magnet.getBoundingClientRect()
+  rotCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+  rotGrab = Math.atan2(e.clientY - rotCenter.y, e.clientX - rotCenter.x) * (180 / Math.PI) + 90 - b.rotation
+  startDrag('rot', b, e)
+}
+
+/** 拖拽 ↗ 操作柄 = 缩放（按指针到中心的距离比例） */
+function onScaleDown(e: MouseEvent, b: SavedBoard) {
+  if (e.button !== 0) return
+  const magnet = (e.currentTarget as HTMLElement).closest<HTMLElement>('.fridge-magnet')
+  if (!magnet) return
+  const rect = magnet.getBoundingClientRect()
+  const cx = rect.left + rect.width / 2
+  const cy = rect.top + rect.height / 2
+  const img = magnet.querySelector<HTMLImageElement>('.magnet-thumb')
+  scaleStart = {
+    dist: Math.max(8, Math.hypot(e.clientX - cx, e.clientY - cy)),
+    scale: b.scale,
+    cx,
+    cy,
+    imgW: img?.offsetWidth ?? 0,
+    imgH: img?.offsetHeight ?? 0,
+    img: img ?? null,
+  }
+  startDrag('scale', b, e)
 }
 
 function onWindowMove(e: MouseEvent) {
   const id = dragId.value
   const b = id ? store.savedBoards.find((x) => x.id === id) : undefined
   if (!b) return
-  const dx = e.clientX - dragStart.x
-  const dy = e.clientY - dragStart.y
-  // 位移超过 4px 才算拖拽（区分点击）
-  if (!dragMoved && Math.abs(dx) + Math.abs(dy) > 4) dragMoved = true
-  if (dragMoved) {
-    b.x = Math.max(0, b.x + dx)
-    b.y = Math.max(0, b.y + dy)
-    dragStart = { x: e.clientX, y: e.clientY }
+  if (dragKind === 'move') {
+    const dx = e.clientX - dragStart.x
+    const dy = e.clientY - dragStart.y
+    // 位移超过 4px 才算拖拽（区分点击）
+    if (!dragMoved && Math.abs(dx) + Math.abs(dy) > 4) dragMoved = true
+    if (dragMoved) {
+      b.x = Math.max(0, b.x + dx)
+      b.y = Math.max(0, b.y + dy)
+      dragStart = { x: e.clientX, y: e.clientY }
+    }
+  } else if (dragKind === 'rot') {
+    const deg = Math.atan2(e.clientY - rotCenter.y, e.clientX - rotCenter.x) * (180 / Math.PI) + 90 - rotGrab
+    b.rotation = Math.round(deg)
+    dragMoved = true
+  } else if (dragKind === 'scale') {
+    const d = Math.hypot(e.clientX - scaleStart.cx, e.clientY - scaleStart.cy)
+    const s = Math.min(3, Math.max(0.5, (scaleStart.scale * d) / scaleStart.dist))
+    b.scale = Math.round(s * 100) / 100
+    // 图元按新倍率缩放（保持像素化最近邻），位置调整使视觉中心不动
+    const nw = (scaleStart.imgW * b.scale) / scaleStart.scale
+    const nh = (scaleStart.imgH * b.scale) / scaleStart.scale
+    if (scaleStart.img) {
+      scaleStart.img.style.width = `${Math.round(nw)}px`
+      scaleStart.img.style.height = `${Math.round(nh)}px`
+    }
+    b.x = Math.round(scaleStart.cx - (nw + 14) / 2) // +14 ≈ 磁贴内边距与边框
+    b.y = Math.round(scaleStart.cy - (nh + 14) / 2)
+    dragMoved = true
   }
 }
 
@@ -56,7 +115,7 @@ function onWindowUp() {
   const id = dragId.value
   if (id && dragMoved) {
     const b = store.savedBoards.find((x) => x.id === id)
-    if (b) moveBoard(b.id, b.x, b.y)
+    if (b) updateBoard(id, { x: b.x, y: b.y, rotation: b.rotation, scale: b.scale })
     lastDragEnd = Date.now()
   }
   dragId.value = null
@@ -69,14 +128,15 @@ function onDblClick(b: SavedBoard) {
   loadBoard(b.id)
 }
 
-/** 磁贴显示尺寸：保持图案比例，但最长边至少 96px（配合最近邻放大呈现像素风） */
+/** 磁贴显示尺寸：保持图案比例，最长边至少 96px，并按当前缩放倍率放大 */
 function applyThumbSize(img: HTMLImageElement) {
   const nw = img.naturalWidth
   const nh = img.naturalHeight
   if (!nw || !nh) return
   const k = Math.max(1, 96 / Math.max(nw, nh))
-  img.style.width = `${Math.round(nw * k)}px`
-  img.style.height = `${Math.round(nh * k)}px`
+  const s = Number(img.closest('.fridge-magnet')?.getAttribute('data-scale')) || 1
+  img.style.width = `${Math.round(nw * k * s)}px`
+  img.style.height = `${Math.round(nh * k * s)}px`
 }
 
 function onThumbLoad(e: Event) {
@@ -90,6 +150,15 @@ function sizeAllThumbs() {
 
 watch(
   () => store.savedBoards.length,
+  async () => {
+    await nextTick()
+    sizeAllThumbs()
+  },
+)
+
+// 缩放倍率变化时重新应用图元尺寸（程序化改动兜底，拖拽中已实时更新）
+watch(
+  () => store.savedBoards.map((b) => `${b.id}:${b.scale}`),
   async () => {
     await nextTick()
     sizeAllThumbs()
@@ -118,6 +187,8 @@ onUnmounted(() => {
     <div
       v-for="b in store.savedBoards"
       :key="b.id"
+      :data-id="b.id"
+      :data-scale="b.scale"
       class="fridge-magnet"
       :class="{ dragging: dragId === b.id }"
       :style="magnetStyle(b)"
@@ -125,15 +196,9 @@ onUnmounted(() => {
       @dblclick="onDblClick(b)"
     >
       <img class="magnet-thumb" :src="b.thumb" :alt="b.name" @load="onThumbLoad">
-      <button
-        class="magnet-del"
-        title="撕下删除"
-        @mousedown.stop
-        @click.stop="deleteBoard(b.id)"
-      >
-        ✕
-      </button>
+      <button class="magnet-rot" title="旋转" @mousedown.stop="onRotDown($event, b)" @dblclick.stop>↻</button>
+      <button class="magnet-scale" title="缩放" @mousedown.stop="onScaleDown($event, b)" @dblclick.stop>↗</button>
+      <button class="magnet-del" title="撕下删除" @mousedown.stop @dblclick.stop @click.stop="deleteBoard(b.id)">✕</button>
     </div>
   </div>
 </template>
-

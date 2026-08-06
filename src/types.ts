@@ -37,4 +37,8 @@ export interface SavedBoard {
   /** 贴在墙上的 CSS 像素坐标（相对墙面左上角） */
   x: number
   y: number
+  /** 旋转角度（度），0 = 正立 */
+  rotation: number
+  /** 缩放倍率（0.5~3），1 = 原尺寸 */
+  scale: number
 }

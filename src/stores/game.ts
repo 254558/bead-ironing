@@ -1,6 +1,7 @@
 import { computed, reactive } from 'vue'
 import type { Cell, IronProgress, Mode, MouseState, SavedBoard } from '../types'
 import { CELL, COLORS, DISPLAY_CELL } from '../utils/color'
+import { rotForId } from '../utils/rotation'
 import { renderThumb } from '../utils/thumbnail'
 
 const STORAGE_KEY = 'bead-iron.savedBoards'
@@ -20,12 +21,14 @@ function loadSavedBoards(): SavedBoard[] {
     if (!raw) return []
     const list = JSON.parse(raw)
     if (!Array.isArray(list)) return []
-    // 统一迁移：重新生成透明背景缩略图（旧版带底板方框）+ 缺失的 x/y 位置补默认落点
+    // 统一迁移：重新生成透明背景缩略图 + 缺失的 x/y 位置补默认落点 + rotation/scale 补默认值
     return (list as SavedBoard[]).map((b, i) => ({
       ...b,
       thumb: regenerateThumb(b.grid),
       x: typeof b.x === 'number' ? b.x : 20 + (i % 4) * 132,
       y: typeof b.y === 'number' ? b.y : 20 + Math.floor(i / 4) * 122,
+      rotation: typeof b.rotation === 'number' ? b.rotation : rotForId(b.id),
+      scale: typeof b.scale === 'number' ? b.scale : 1,
     }))
   } catch {
     return []
@@ -188,6 +191,8 @@ export function saveBoard() {
     savedAt: Date.now(),
     x: 24 + (n % 4) * 132,
     y: 24 + Math.floor(n / 4) * 122,
+    rotation: rotForId(id),
+    scale: 1,
   })
   persistBoards()
   store.showBoardPanel = true
@@ -211,12 +216,14 @@ export function deleteBoard(id: string) {
   persistBoards()
 }
 
-/** 拖拽结束后更新冰箱贴在墙上的位置并持久化 */
-export function moveBoard(id: string, x: number, y: number) {
+/** 拖拽/旋转/缩放结束后，更新冰箱贴在墙上的姿态（位置/角度/缩放）并持久化 */
+export function updateBoard(id: string, patch: Partial<Pick<SavedBoard, 'x' | 'y' | 'rotation' | 'scale'>>) {
   const board = store.savedBoards.find((b) => b.id === id)
   if (!board) return
-  board.x = Math.max(0, Math.round(x))
-  board.y = Math.max(0, Math.round(y))
+  if (typeof patch.x === 'number') board.x = Math.max(0, Math.round(patch.x))
+  if (typeof patch.y === 'number') board.y = Math.max(0, Math.round(patch.y))
+  if (typeof patch.rotation === 'number') board.rotation = patch.rotation
+  if (typeof patch.scale === 'number') board.scale = patch.scale
   persistBoards()
 }
 

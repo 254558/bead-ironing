@@ -457,14 +457,14 @@ body {
 /* 悬停才出现描边，提示可以拿起/操作 */
 .fridge-magnet:hover {
   border-color: #41a6f6;
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5), 0 0 12px rgba(65, 166, 246, 0.35);
+  box-shadow: 0 0 12px rgba(65, 166, 246, 0.35);
 }
 
 .fridge-magnet.dragging {
   z-index: 50;
   cursor: grabbing;
   border-color: #ffcd75;
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.55), 0 0 14px rgba(255, 205, 117, 0.3);
+  box-shadow: 0 0 14px rgba(255, 205, 117, 0.3);
 }
 
 .magnet-thumb {
@@ -502,4 +502,45 @@ body {
 
 .magnet-del:hover {
   background: #ef7d57;
+}
+
+/* 旋转/缩放操作柄：悬停磁贴时出现，像素 bevel 按钮 */
+.magnet-rot,
+.magnet-scale {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background: #3b5dc9;
+  border: 2px solid;
+  border-color: #41a6f6 #1a1c2c #1a1c2c #41a6f6;
+  color: #f4f4f4;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 0.12s;
+  z-index: 5;
+}
+
+.fridge-magnet:hover .magnet-rot,
+.fridge-magnet:hover .magnet-scale {
+  opacity: 1;
+}
+
+.magnet-rot {
+  top: -11px;
+  left: 50%;
+  margin-left: -12px;
+}
+
+.magnet-scale {
+  bottom: -11px;
+  right: -11px;
+  cursor: nwse-resize;
+}
+
+.magnet-rot:hover,
+.magnet-scale:hover {
+  background: #41a6f6;
 }
