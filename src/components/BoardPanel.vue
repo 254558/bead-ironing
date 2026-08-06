@@ -94,7 +94,6 @@ onUnmounted(() => {
       @dblclick="onDblClick(b)"
     >
       <img class="magnet-thumb" :src="b.thumb" :alt="b.name">
-      <span class="magnet-name">{{ b.name }}</span>
       <button
         class="magnet-del"
         title="撕下删除"

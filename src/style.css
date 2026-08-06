@@ -482,13 +482,6 @@ body {
   pointer-events: none;
 }
 
-.magnet-name {
-  font-size: 7px;
-  color: #94b0c2;
-  text-align: center;
-  pointer-events: none;
-}
-
 .magnet-del {
   position: absolute;
   top: -11px;
