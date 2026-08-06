@@ -5,13 +5,14 @@ import { shade } from './color'
  * 把拼豆网格绘制成缩略图 PNG：只包含珠子实际占据的区域（裁剪到图案边界），
  * 背景透明、无底板方框。每颗珠子按主画布的画法绘制（圆形拼豆 / 熔融扁珠），
  * 因此图案边缘呈现拼豆本身的圆形轮廓，而不是矩形色块。
- * scale 由内容尺寸动态计算（最长边约 maxSize 像素，整数倍，clamp 3~8）。
+ * scale 由内容尺寸动态计算（最长边约 maxSize 像素，整数倍，clamp 4~24），
+ * 保证缩略图自然分辨率 ≥96px，磁贴按 1:1 显示不放大、不模糊。
  * 不依赖 game store，避免循环导入。
  */
 export function renderThumb(
   ctx: CanvasRenderingContext2D,
   grid: Cell[][],
-  maxSize = 100,
+  maxSize = 96,
 ) {
   const rows = grid.length
   const cols = grid[0]?.length ?? 0
@@ -34,7 +35,7 @@ export function renderThumb(
   }
   const cw = maxC - minC + 1
   const ch = maxR - minR + 1
-  const scale = Math.max(3, Math.min(8, Math.floor(maxSize / Math.max(cw, ch))))
+  const scale = Math.max(4, Math.min(24, Math.round(maxSize / Math.max(cw, ch))))
   ctx.canvas.width = cw * scale
   ctx.canvas.height = ch * scale
   ctx.imageSmoothingEnabled = false
