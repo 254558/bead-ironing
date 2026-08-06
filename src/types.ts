@@ -34,4 +34,7 @@ export interface SavedBoard {
   /** 缩略图 PNG dataURL */
   thumb: string
   savedAt: number
+  /** 贴在墙上的 CSS 像素坐标（相对墙面左上角） */
+  x: number
+  y: number
 }

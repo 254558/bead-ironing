@@ -11,7 +11,13 @@ function loadSavedBoards(): SavedBoard[] {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const list = JSON.parse(raw)
-    return Array.isArray(list) ? (list as SavedBoard[]) : []
+    if (!Array.isArray(list)) return []
+    // 旧版本数据没有 x/y 位置：按索引错落补默认落点，保证不互相叠压
+    return (list as SavedBoard[]).map((b, i) => ({
+      ...b,
+      x: typeof b.x === 'number' ? b.x : 20 + (i % 4) * 132,
+      y: typeof b.y === 'number' ? b.y : 20 + Math.floor(i / 4) * 122,
+    }))
   } catch {
     return []
   }
@@ -163,6 +169,8 @@ export function saveBoard() {
   canvas.height = store.rows * 2
   const ctx = canvas.getContext('2d')
   if (ctx) renderThumb(ctx, grid, store.cols, store.rows, 2)
+  // 初始落点：按已有数量错落排布（间距大于磁贴尺寸，避免叠压），之后可自由拖拽
+  const n = store.savedBoards.length
   store.savedBoards.push({
     id,
     name,
@@ -171,10 +179,12 @@ export function saveBoard() {
     grid,
     thumb: canvas.toDataURL('image/png'),
     savedAt: Date.now(),
+    x: 24 + (n % 4) * 132,
+    y: 24 + Math.floor(n / 4) * 122,
   })
   persistBoards()
   store.showBoardPanel = true
-  showStatus(`已保存「${name}」到作品面板`)
+  showStatus(`已保存「${name}」到作品墙`)
 }
 
 /** 把面板中的一件作品整表载入画布（保留熔融度，不走 switchMode） */
@@ -191,6 +201,15 @@ export function loadBoard(id: string) {
 
 export function deleteBoard(id: string) {
   store.savedBoards = store.savedBoards.filter((b) => b.id !== id)
+  persistBoards()
+}
+
+/** 拖拽结束后更新冰箱贴在墙上的位置并持久化 */
+export function moveBoard(id: string, x: number, y: number) {
+  const board = store.savedBoards.find((b) => b.id === id)
+  if (!board) return
+  board.x = Math.max(0, Math.round(x))
+  board.y = Math.max(0, Math.round(y))
   persistBoards()
 }
 
